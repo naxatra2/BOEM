@@ -162,3 +162,5 @@ cython_debug/
 #.idea/
 
 .DS_Store
+/lightning_logs
+/Vulture_03_28_2022
