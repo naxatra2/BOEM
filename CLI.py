@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 CLI.py
 
@@ -12,9 +12,8 @@ import glob
 import pandas as pd
 from omegaconf import OmegaConf
 
-# Active learning functions
 from src.active_learning import generate_pool_predictions, human_review, select_images
-# Label Studio integration
+
 from src.label_studio import get_api_key
 from src.pipeline import Pipeline
 
@@ -48,7 +47,6 @@ def parse_args():
                         help="Max images to subsample (default: 1000).")
     parser.add_argument("--batch_size", type=int, default=16,
                         help="Batch size for prediction (default: 16).")
-    # Pool mapping
     parser.add_argument("--pool_file",
                         help="Optional CSV/TXT mapping image_path,pool_id.")
     # Label Studio args
@@ -59,6 +57,7 @@ def parse_args():
                         help="File to save selected image paths (with pool IDs).")
     parser.add_argument("--output_csv", default="selected_preannotations.csv",
                         help="File to save selected preannotations (with pool IDs).")
+    
     return parser.parse_args()
 
 
@@ -77,7 +76,7 @@ def main():
                                    names=["image_path","pool_id"])
         logging.info(f"Loaded pool mapping for {len(pool_map)} images.")
 
-    # Step 1: Load or generate preannotations
+    # Load or generate preannotations
     if args.annotations_csv:
         logging.info(f"Loading preannotations from {args.annotations_csv}")
         preannotations = pd.read_csv(args.annotations_csv)
@@ -113,7 +112,7 @@ def main():
         logging.info("No predictions available; exiting.")
         return
 
-    # Step 2: Split confident vs uncertain
+    # Split confident vs uncertain
     logging.info("Splitting predictions into confident vs uncertain...")
     confident, uncertain = human_review(
         preannotations,
@@ -122,7 +121,7 @@ def main():
     )
     logging.info(f"Confident: {len(confident)}, Uncertain: {len(uncertain)}")
 
-    # Step 3: Select images for annotation
+    # Select images for annotation
     chosen, chosen_pre = select_images(
         uncertain,
         strategy=args.strategy,
@@ -138,7 +137,7 @@ def main():
         chosen = list(cf.itertuples(index=False, name=None))  # (image_path,pool_id)
         chosen_pre = chosen_pre.merge(pool_map, on="image_path", how="left")
 
-    # Step 4: Save results
+    # Save results
     with open(args.output_images, "w") as f:
         if pool_map is not None:
             for img,pid in chosen:
@@ -150,7 +149,7 @@ def main():
     logging.info(f"Saved images list to {args.output_images}")
     logging.info(f"Saved preannotations to {args.output_csv}")
 
-    # Step 5: Push selected images to Label Studio
+    # Push selected images to Label Studio
     api_key = get_api_key()
     if not api_key:
         logging.warning("No Label Studio API key found; skipping task creation.")
